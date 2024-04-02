@@ -33,6 +33,6 @@ class MyData(Dataset):
     
     def __getitem__(self, index):
         label = self.data[index][-1].clone().detach().to(torch.long)
-        feature = self.data[index][:-1].clone().detach().to(torch.float32)
+        feature = self.data[index][:-1].clone().detach().to(torch.float32).reshape(len(self.data[0])-1,1)
         return feature, label                   
                  
