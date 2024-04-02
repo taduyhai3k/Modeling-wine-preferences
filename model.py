@@ -22,7 +22,7 @@ class FullyConnected(nn.Module):
         self.linear1 = nn.Linear(in_features= self.input_shape, out_features= self.num_of_l2, dtype= torch.float32)
         self.linear2 = nn.Linear(in_features= self.num_of_l2, out_features=self.output_shape, dtype=torch.float32)
         if self.type_active == "softmax":
-            self.active = nn.Softmax()
+            self.active = nn.Softmax(dim = 1)
         else:
             self.active = nn.Sigmoid()
     def forward(self, x):
