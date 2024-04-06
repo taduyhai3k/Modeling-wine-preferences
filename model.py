@@ -13,7 +13,7 @@ class InputEmbedding(nn.Module):
         return torch.matmul(x, self.linear)     
 
 class FullyConnected(nn.Module):
-    def __init__(self, input_shape, num_of_l2,output_shape, type_active = "softmax"):
+    def __init__(self, input_shape, num_of_l2, output_shape, type_active = "softmax"):
         super().__init__()
         self.input_shape = input_shape
         self.output_shape = output_shape
@@ -22,7 +22,7 @@ class FullyConnected(nn.Module):
         self.linear1 = nn.Linear(in_features= self.input_shape, out_features= self.num_of_l2, dtype= torch.float32)
         self.linear2 = nn.Linear(in_features= self.num_of_l2, out_features=self.output_shape, dtype=torch.float32)
         if self.type_active == "softmax":
-            self.active = nn.Softmax(dim = 1)
+            self.active = nn.Softmax(dim = 2)
         else:
             self.active = nn.Sigmoid()
     def forward(self, x):
@@ -45,11 +45,11 @@ class MultiHeadAtten(nn.Module):
         
     
     def forward(self,x):
-        Q = torch.matmul(x, self.linear_q).transpose(0,1).view(self.num_of_head,self.d_atten,self.input_shape[0]).transpose(1,2)
-        K = torch.matmul(x, self.linear_k).transpose(0,1).view(self.num_of_head,self.d_atten,self.input_shape[0]).transpose(1,2)
-        V = torch.matmul(x, self.linear_v).transpose(0,1).view(self.num_of_head,self.d_atten,self.input_shape[0]).transpose(1,2)
+        Q = torch.matmul(x, self.linear_q).transpose(1,2).view(x.shape[0],self.num_of_head,self.d_atten,self.input_shape[0]).transpose(2,3)
+        K = torch.matmul(x, self.linear_k).transpose(1,2).view(x.shape[0],self.num_of_head,self.d_atten,self.input_shape[0]).transpose(2,3)
+        V = torch.matmul(x, self.linear_v).transpose(1,2).view(x.shape[0],self.num_of_head,self.d_atten,self.input_shape[0]).transpose(2,3)
         #print(torch.matmul(torch.matmul(Q, K.transpose(1,2)).softmax(dim = 2), V))
-        V = torch.matmul(torch.matmul(Q, K.transpose(1,2)).softmax(dim = 2), V).transpose(0,1).reshape(self.input_shape[0], self.num_of_head * self.d_atten)
+        V = torch.matmul(torch.matmul(Q, K.transpose(2,3)).softmax(dim = 3), V).transpose(1,2).reshape(x.shape[0],self.input_shape[0], self.num_of_head * self.d_atten)
         V = torch.matmul(V, self.linear)
         V = V + x
         return self.layernorm(V)
@@ -75,5 +75,5 @@ class MainModel(nn.Module):
         inputem = self.InEm(x)
         for layer in self.Stack_MultiHead:
             inputem = layer(inputem)
-        return self.FuCon(self.AvgPooling(inputem.reshape(1, inputem.shape[0], inputem.shape[1])).reshape(1, inputem.shape[1]))
+        return self.FuCon(self.AvgPooling(inputem)).reshape(inputem.shape[0], self.output_shape)
                     
