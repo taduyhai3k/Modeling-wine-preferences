@@ -25,7 +25,7 @@ class Exp_Wine(Exp_Basic):
         
     def build_model(self):
          self.model = model.MainModel(self.agrs.input_shape, self.agrs.d_model, self.agrs.d_atten, self.agrs.num_of_head,
-                                     self.agrs.num_of_l2, self.agrs.num_of_multi, self.agrs.output_shape, self.type_active)  
+                                     self.agrs.num_of_l2, self.agrs.num_of_multi, self.agrs.output_shape, self.agrs.type_active)  
                   
     def getdata(self):
         raw_data = pd.read_csv(self.agrs.filepath, sep= ",") 
@@ -39,15 +39,15 @@ class Exp_Wine(Exp_Basic):
         self.build_model()
         self.model.train()
         loss_fn = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(self.model.parameters, lr = 0.001, betas = (0.9, 0.999))    
+        optimizer = torch.optim.Adam(self.model.parameters(), lr = 0.001, betas = (0.9, 0.999))    
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)    
         sum_loss = []
-        for i in range(20):            
-            for feature, label in self.train:
+        for i in range(30):            
+            for feature, label in self.train_data:
                 optimizer.zero_grad()                
                 output = self.model(feature)
                 loss = loss_fn(output, label)
-                sum_loss.append(loss) 
+                sum_loss.append(loss.item()) 
                 loss.backward()
                 optimizer.step()
             scheduler.step()    
@@ -57,7 +57,7 @@ class Exp_Wine(Exp_Basic):
     def test(self):
         self.model.eval()
         loss = []
-        for feature, label in self.test:
+        for feature, label in self.test_data:
             output = self.model(feature)
             output = np.array([torch.argmax(i).item() for i in output], dtype = np.int16, ndmin= 1)
             label = label.detach().numpy() 
@@ -81,9 +81,9 @@ class Exp_Wine(Exp_Basic):
         array_loss_test = []
         for i in range(self.agrs.epoch):
             data_tmp = next(self.data)
-            self.train =  proda.DataLoader(proda.MyData(data_tmp[0]), batch_size= self.agrs.batch_size, shuffle = True)
-            self.test = proda.DataLoader(proda.MyData(data_tmp[1]),batch_size= self.agrs.batch_size, shuffle = True)
+            self.train_data =  proda.DataLoader(proda.MyData(data_tmp[0]), batch_size= self.agrs.batch_size, shuffle = True)
+            self.test_data = proda.DataLoader(proda.MyData(data_tmp[1]),batch_size= self.agrs.batch_size, shuffle = True)
             array_loss_train.append(self.train())
             array_loss_test.append(self.test())
-            self.save(i)
+            #self.save(i)
             

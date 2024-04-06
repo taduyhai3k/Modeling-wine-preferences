@@ -8,7 +8,7 @@ parse.add_argument("--d_atten", type= int, help = "dimenson of input attention",
 parse.add_argument("--num_of_head", type = int, help = "number head attention", default= 5)
 parse.add_argument("--num_of_l2", type= int, help = "quantity of unit in fully connected", default= 11)
 parse.add_argument("--num_of_multi", type= int, help = "num of layer multiatten", default= 5)
-parse.add_argument("--output_shape", type= list, help = "number of label", default= [1, 11])
+parse.add_argument("--output_shape", type= int, help = "number of label", default= 11)
 parse.add_argument("--type_active", type= str, help = "active function to output", default= "softmax")
 parse.add_argument("--filepath", type = str, help = "path to data", default = "data_clean.csv")
 parse.add_argument("--target", type = int, help = "index column to predict", default = 11)
