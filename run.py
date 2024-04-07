@@ -13,7 +13,10 @@ parse.add_argument("--type_active", type= str, help = "active function to output
 parse.add_argument("--filepath", type = str, help = "path to data", default = "data_clean.csv")
 parse.add_argument("--target", type = int, help = "index column to predict", default = 11)
 parse.add_argument("--batch_size", help = "size of batch data", default = 64, type = int )
-parse.add_argument("--epoch", type = int, help = "epoch", default = 5)
+parse.add_argument("--k_fold", type = int, help = "epoch", default = 5)
+parse.add_argument("--epoch", type = int, help = "epoch", default = 20)
+parse.add_argument("--feedfoward", type= bool, help= "Use feed foward in attention", default= True)
+parse.add_argument("--balance_data", default = False, type = bool, help = "random sample data in order to make balance data")
 args = parse.parse_args()
 
 if __name__ == "__main__":
