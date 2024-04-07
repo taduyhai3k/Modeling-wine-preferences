@@ -4,6 +4,7 @@ import torch
 import model
 import processdata as proda
 import datetime
+import random
 
 class Exp_Basic(object):
     def __init__(self, agrs):
@@ -34,15 +35,20 @@ class Exp_Wine(Exp_Basic):
         list_quality = {int(i) : [] for i in target.unique()}
         for i in range(len(target)):
             list_quality[int(target[i])].append(raw_data[i])
+        max1 = max([len(list_quality[i]) for i in target.unique()])            
+        if self.agrs.balance_data:
+            for i in target.unique():
+                list_quality[i] += random.choices(list_quality[i], k = max1 - len(list_quality[i]))     
         self.data = proda.GetDataTrainTest(list_quality, 5)    
     def train(self):
         self.build_model()
         self.model.train()
         loss_fn = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(self.model.parameters(), lr = 0.001, betas = (0.9, 0.999))    
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)    
+        optimizer = torch.optim.Adam(self.model.parameters(), lr = 0.001, betas = (0.9, 0.999))               
         sum_loss = []
-        for i in range(30):            
+        for i in range(self.agrs.epoch):     
+            self.model.train()       
+            scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)             
             for feature, label in self.train_data:
                 optimizer.zero_grad()                
                 output = self.model(feature)
@@ -53,16 +59,22 @@ class Exp_Wine(Exp_Basic):
             scheduler.step()    
             if i % 4 == 0:
                 print(f"Vòng lặp thứ {i}, giá trị hàm train loss {np.mean(np.array(sum_loss))}")
+                self.test()   
         return sum_loss    
     def test(self):
         self.model.eval()
+        matrix = np.zeros(shape=(self.agrs.output_shape, self.agrs.output_shape), dtype= np.uint8)
         loss = []
-        for feature, label in self.test_data:
-            output = self.model(feature)
-            output = np.array([torch.argmax(i).item() for i in output], dtype = np.int16, ndmin= 1)
-            label = label.detach().numpy() 
-            loss.append(np.sum(np.abs(output - label)) / len(output))
-        print(f"Giá trị hàm test loss {np.mean(np.array(loss))}")    
+        with torch.no_grad():
+            for feature, label in self.test_data:
+                output = self.model(feature)
+                output = np.array([torch.argmax(i).item() for i in output], dtype = np.int16, ndmin= 1)
+                label = label.detach().numpy()
+                for i in range(len(label)):
+                    matrix[output[i]][label[i]] += 1 
+                loss.append(np.sum(np.abs(output - label)) / len(output))
+            print(f"Giá trị hàm test loss {np.mean(np.array(loss))}")    
+            print(matrix)
         return np.mean(np.array(loss))   
     
     def save(self, epoch):
@@ -71,7 +83,7 @@ class Exp_Wine(Exp_Basic):
         checkpoint_path = f'checkpoint_epoch_{epoch}_time_{current_time}.pth'
         checkpoint = {
             'model_state_dict': model_dict,
-            'epoch': epoch,
+            'fold': epoch,
             'training_time': current_time,
         }
         torch.save(checkpoint, checkpoint_path)
@@ -79,11 +91,11 @@ class Exp_Wine(Exp_Basic):
     def train_test_loop(self):
         array_loss_train = []
         array_loss_test = []
-        for i in range(self.agrs.epoch):
+        for i in range(self.agrs.k_fold):
             data_tmp = next(self.data)
             self.train_data =  proda.DataLoader(proda.MyData(data_tmp[0]), batch_size= self.agrs.batch_size, shuffle = True)
             self.test_data = proda.DataLoader(proda.MyData(data_tmp[1]),batch_size= self.agrs.batch_size, shuffle = True)
             array_loss_train.append(self.train())
-            array_loss_test.append(self.test())
-            #self.save(i)
+            #array_loss_test.append(self.test())
+            self.save(i)
             
